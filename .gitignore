@@ -1,0 +1,22 @@
+# Environment variables - NEVER commit this
+#.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Node / React
+node_modules/
+dist/
+build/
+
+# Docker
+.docker/
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
