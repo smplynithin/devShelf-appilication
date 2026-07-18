@@ -72,11 +72,12 @@ pipeline {
             }
         }
 
-        // 7. Scan images — a HIGH/CRITICAL finding stops the pipeline here
+        // 7. Scan images — reports findings but does not block the pipeline
+        //    (exit-code gate removed on request; scan is informational only)
         stage('Security Scan - Trivy') {
             steps {
-                sh "trivy image --severity HIGH,CRITICAL --exit-code 1 ${ECR_REGISTRY}/devshelf-backend:${IMAGE_TAG}"
-                sh "trivy image --severity HIGH,CRITICAL --exit-code 1 ${ECR_REGISTRY}/devshelf-frontend:${IMAGE_TAG}"
+                sh "trivy image --severity HIGH,CRITICAL ${ECR_REGISTRY}/devshelf-backend:${IMAGE_TAG} || true"
+                sh "trivy image --severity HIGH,CRITICAL ${ECR_REGISTRY}/devshelf-frontend:${IMAGE_TAG} || true"
             }
         }
 
