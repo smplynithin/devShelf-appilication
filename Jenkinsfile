@@ -103,7 +103,7 @@ pipeline {
                         rm -rf manifests
                         git clone https://$GIT_USER:$GIT_TOKEN@$MANIFEST_REPO manifests
                         cd manifests/devshelf-chart
-                        sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" values-staging.yaml
+                        sed -i "s/tag:.*/tag: \\"${IMAGE_TAG}\\"/" values-staging.yaml
                         git config user.email "jenkins@devshelf.local"
                         git config user.name "jenkins"
                         git commit -am "staging: bump image tag to ${IMAGE_TAG}"
@@ -113,43 +113,46 @@ pipeline {
             }
         }
 
-        // 10-12. DEFERRED TO PHASE 2 — these need a real EKS cluster with
-        // ArgoCD running and actually syncing before they can succeed.
-        // Uncomment once that's built.
-        //
-        // stage('Smoke Test - Staging') {
-        //     steps {
-        //         sh '''
-        //             sleep 30
-        //             curl -sf https://staging.devshelf.example.com/health
-        //         '''
-        //     }
-        // }
-        //
-        // stage('Approval Gate - Production') {
-        //     steps {
-        //         timeout(time: 30, unit: 'MINUTES') {
-        //             input message: 'Promote this build to production?', ok: 'Deploy'
-        //         }
-        //     }
-        // }
-        //
-        // stage('Update Production Manifest') {
-        //     steps {
-        //         withCredentials([usernamePassword(
-        //             credentialsId: 'github-manifest-creds',
-        //             usernameVariable: 'GIT_USER',
-        //             passwordVariable: 'GIT_TOKEN'
-        //         )]) {
-        //             sh '''
-        //                 cd manifests/devshelf-chart
-        //                 sed -i "s/tag:.*/tag: ${IMAGE_TAG}/" values-production.yaml
-        //                 git commit -am "production: bump image tag to ${IMAGE_TAG}"
-        //                 git push
-        //             '''
-        //         }
-        //     }
-        // }
+        // 10. ArgoCD auto-synced the staging change by now. Confirm the app
+        //     actually responds — no ingress/DNS exists yet, so this checks
+        //     from inside the cluster via a throwaway pod, not a public URL.
+        stage('Smoke Test - Staging') {
+            steps {
+                sh '''
+                    sleep 30
+                    kubectl run smoke-test-${BUILD_NUMBER} --rm -i --restart=Never \
+                      -n devshelf-staging --image=curlimages/curl -- \
+                      curl -sf http://devshelf-backend/health
+                '''
+            }
+        }
+
+        // 11. Human checkpoint before anything touches production
+        stage('Approval Gate - Production') {
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    input message: 'Promote this build to production?', ok: 'Deploy'
+                }
+            }
+        }
+
+        // 12. Same pattern as stage 9, pointed at the production values file
+        stage('Update Production Manifest') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-manifest-creds',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_TOKEN'
+                )]) {
+                    sh '''
+                        cd manifests/devshelf-chart
+                        sed -i "s/tag:.*/tag: \\"${IMAGE_TAG}\\"/" values-production.yaml
+                        git commit -am "production: bump image tag to ${IMAGE_TAG}"
+                        git push
+                    '''
+                }
+            }
+        }
     }
 
     post {
