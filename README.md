@@ -84,7 +84,7 @@ These are deliberate, time-boxed simplifications for a capstone under deadline p
 
 ## Related Repos
 
-- **[`devshelf-manifests`](../devshelf-manifests)** — Helm chart, environment values, ArgoCD `Application` definitions. Kept separate on purpose: ArgoCD watches this repo continuously, and it should only ever change when a deployment is actually intended, not on every app code commit.
+- **[`devshelf-manifests`](https://github.com/smplynithin/devshelf-manifests.git)** — Helm chart, environment values, ArgoCD `Application` definitions. Kept separate on purpose: ArgoCD watches this repo continuously, and it should only ever change when a deployment is actually intended, not on every app code commit.
 
 ## Local Development
 
